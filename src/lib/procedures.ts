@@ -74,6 +74,26 @@ const PROCEDURES: Record<string, ProcedureResult> = {
     ],
     confidenceScore: 0.94,
   },
+  "petroleum_confined_space": {
+    title: "Petroleum Facility Confined Space - Additional Hazards",
+    document: "OHS-PET-007 Petroleum Facility Operations",
+    section: "Section 5.3: Confined Space in Hydrocarbon Environments",
+    effectiveDate: "2025-09-01",
+    content:
+      "Additional requirements for confined space entry at petroleum facilities:\n" +
+      "1. LEL monitoring continuous with audible alarm set at 10% LEL.\n" +
+      "2. H2S monitoring mandatory - IDLH at 100 ppm, evacuate at 10 ppm.\n" +
+      "3. Bonding and grounding required before opening any vessel.\n" +
+      "4. Hot work permit required within 10m of entry point.\n" +
+      "5. Hydrocarbon vapor recovery system must be operational.\n" +
+      "6. Emergency shutdown (ESD) procedure posted at entry point.",
+    citations: [
+      "OHS-PET-007, Section 5.3, para 1-6 (effective 2025-09-01)",
+      "Alberta OHS Code Part 5, Section 50",
+      "ABSA Pressure Equipment Safety Regulation, Section 14",
+    ],
+    confidenceScore: 0.87,
+  },
 };
 
 const NOTIFICATION_TARGETS: NotificationTarget[] = [
@@ -83,8 +103,11 @@ const NOTIFICATION_TARGETS: NotificationTarget[] = [
   { name: "M. Chen", role: "EMS Supervisor", channel: "Radio Ch. 5" },
 ];
 
-export function lookupProcedure(query: string): ProcedureResult | null {
+export function lookupProcedure(query: string): ProcedureResult | ProcedureResult[] | null {
   const q = query.toLowerCase();
+  if (q.includes("petroleum") && q.includes("confined")) {
+    return [PROCEDURES["confined_space_collapse"], PROCEDURES["petroleum_confined_space"]];
+  }
   if (q.includes("collapse") || q.includes("confined space emergency") || q.includes("rescue")) {
     return PROCEDURES["confined_space_collapse"];
   }

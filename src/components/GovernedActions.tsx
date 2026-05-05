@@ -55,21 +55,24 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
     handler: async ({ query }) => {
       const authorized = isAuthorized(currentRole, "lookup_procedure");
       if (!authorized) {
-        const entry = logAuditEntry(currentRole, "lookup_procedure", false, query, "DENIED");
+        logAuditEntry(currentRole, "lookup_procedure", false, query, "DENIED");
         onAuditUpdate();
         return `ACCESS DENIED: ${ROLE_LABELS[currentRole]} role cannot look up procedures. Required: ${getRequiredRole("lookup_procedure")}.`;
       }
 
       const result = lookupProcedure(query);
       if (!result) {
-        const entry = logAuditEntry(currentRole, "lookup_procedure", true, query, "NO_MATCH - FAIL_CLOSED");
+        logAuditEntry(currentRole, "lookup_procedure", true, query, "NO_MATCH - FAIL_CLOSED");
         onAuditUpdate();
         return "INSUFFICIENT EVIDENCE: No matching procedure found. The system refuses to generate an answer without supporting evidence.";
       }
 
-      logAuditEntry(currentRole, "lookup_procedure", true, query, `APPROVED - ${result.document}`);
+      const results = Array.isArray(result) ? result : [result];
+      for (const r of results) {
+        logAuditEntry(currentRole, "lookup_procedure", true, query, `APPROVED - ${r.document}`);
+      }
       onAuditUpdate();
-      return JSON.stringify(result);
+      return JSON.stringify(results);
     },
     render: ({ status, result, args }) => {
       if (status === "inProgress") {
@@ -87,7 +90,6 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
 
       if (!result) return <></>;
 
-      // Check if it was a denial
       if (typeof result === "string" && result.startsWith("ACCESS DENIED")) {
         return (
           <div className="border border-red-300 bg-red-50 rounded-lg p-4 my-2">
@@ -100,7 +102,6 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
         );
       }
 
-      // Check for fail-closed
       if (typeof result === "string" && result.startsWith("INSUFFICIENT")) {
         return (
           <div className="border border-amber-300 bg-amber-50 rounded-lg p-4 my-2">
@@ -115,37 +116,46 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
         );
       }
 
-      // Parse and display the procedure
       try {
-        const proc = JSON.parse(result);
+        const parsed = typeof result === "string" ? JSON.parse(result) : result;
+        const procedures = Array.isArray(parsed) ? parsed : [parsed];
         return (
-          <div className="border border-emerald-300 bg-white rounded-lg p-4 my-2 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-emerald-600 text-lg">&#x2705;</span>
-              <span className="font-semibold text-emerald-800">Approved Guidance</span>
-              <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">
-                Score: {proc.confidenceScore}
-              </span>
-            </div>
-            <h3 className="font-bold text-gray-900 mb-1">{proc.title}</h3>
-            <p className="text-xs text-gray-500 mb-3">
-              {proc.document} | {proc.section} | Effective: {proc.effectiveDate}
-            </p>
-            <pre className="text-sm text-gray-800 whitespace-pre-wrap bg-gray-50 p-3 rounded mb-3">
-              {proc.content}
-            </pre>
-            <div className="border-t pt-2">
-              <p className="text-xs font-medium text-gray-500 mb-1">Citations:</p>
-              {proc.citations.map((c: string, i: number) => (
-                <p key={i} className="text-xs text-gray-600 pl-2">
-                  [{i + 1}] {c}
+          <div className="space-y-2 my-2">
+            {procedures.map((proc, idx) => (
+              <div key={idx} className="border border-emerald-300 bg-white rounded-lg p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-emerald-600 text-lg">&#x2705;</span>
+                  <span className="font-semibold text-emerald-800">Approved Guidance</span>
+                  {procedures.length > 1 && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                      {idx + 1} of {procedures.length}
+                    </span>
+                  )}
+                  <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">
+                    Score: {proc.confidenceScore}
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-1">{proc.title}</h3>
+                <p className="text-xs text-gray-500 mb-3">
+                  {proc.document} | {proc.section} | Effective: {proc.effectiveDate}
                 </p>
-              ))}
-            </div>
+                <pre className="text-sm text-gray-800 whitespace-pre-wrap bg-gray-50 p-3 rounded mb-3">
+                  {proc.content}
+                </pre>
+                <div className="border-t pt-2">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Citations:</p>
+                  {proc.citations.map((c: string, i: number) => (
+                    <p key={i} className="text-xs text-gray-600 pl-2">
+                      [{i + 1}] {c}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         );
       } catch {
-        return <div className="text-sm text-gray-600 my-2">{result}</div>;
+        return <div className="text-sm text-gray-600 my-2">{String(result)}</div>;
       }
     },
   });
