@@ -42,8 +42,10 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
   useCopilotAction({
     name: "lookup_procedure",
     description:
-      "Look up a safety procedure from the governed knowledge base. " +
-      "Available to all roles. Returns cited procedure with source document reference.",
+      "REQUIRED: You MUST call this tool for EVERY user question, including medical questions, " +
+      "unknown topics, and anything you think you already know the answer to. " +
+      "This is a governed knowledge base lookup. If no matching procedure exists, " +
+      "the tool returns a fail-closed refusal. Never answer without calling this tool first.",
     parameters: [
       {
         name: "query",
