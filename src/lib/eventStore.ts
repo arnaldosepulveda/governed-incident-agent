@@ -49,21 +49,25 @@ export type ControlEvent = {
 
 type EventStore = {
   events: ControlEvent[];
-  addEvent: (event: Omit<ControlEvent, 'id' | 'timestamp' | 'demoMode'>) => void;
+  addEvent: (event: Omit<ControlEvent, 'id' | 'timestamp' | 'demoMode'>) => string;
   updateEvent: (id: string, updates: Partial<Pick<ControlEvent, 'status' | 'value' | 'duration_ms' | 'detail'>>) => void;
   clear: () => void;
 };
 
 export const useEventStore = create<EventStore>((set) => ({
   events: [],
-  addEvent: (event) => set((state) => ({
-    events: [...state.events, {
-      ...event,
-      id: `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      timestamp: Date.now(),
-      demoMode: true,
-    }],
-  })),
+  addEvent: (event) => {
+    const id = `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    set((state) => ({
+      events: [...state.events, {
+        ...event,
+        id,
+        timestamp: Date.now(),
+        demoMode: true,
+      }],
+    }));
+    return id;
+  },
   updateEvent: (id, updates) => set((state) => ({
     events: state.events.map((e) =>
       e.id === id ? { ...e, ...updates } : e

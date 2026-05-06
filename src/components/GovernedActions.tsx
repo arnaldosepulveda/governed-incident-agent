@@ -14,6 +14,7 @@ import {
   getNotificationTargets,
   generateProcedureUpdate,
 } from "@/lib/procedures";
+import { useEventStore } from "@/lib/eventStore";
 
 interface GovernedActionsProps {
   currentRole: Role;
@@ -21,6 +22,26 @@ interface GovernedActionsProps {
 }
 
 export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsProps) {
+  // DEMO MODE: Simulated sensor timing. See docs/BOSTON_HACKATHON_DEMO_PLAN.md
+  const DEMO_TIMING = {
+    rbac: 0,
+    retrieval1: 142,
+    retrieval2: 198,
+    acl: 2,
+    evidence: 1,
+    hhem: 847,
+    toolAuth: 4,
+    hitl: 6,
+    audit: 12,
+  };
+
+  const DEMO_THRESHOLDS = {
+    evidence: 0.70,
+    hhem: 0.65,
+  };
+
+  const simulateDelay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
   // Share state with the agent
   useCopilotReadable({
     description: "Current user role and permissions",
@@ -55,21 +76,170 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
       },
     ],
     handler: async ({ query }) => {
+      const store = useEventStore.getState();
+      store.clear();
+
       const authorized = isAuthorized(currentRole, "lookup_procedure");
+
+      // Gate 1: RBAC
+      store.addEvent({
+        category: "controller",
+        stage: "rbac",
+        label: "RBAC authorization",
+        detail: authorized
+          ? `${ROLE_LABELS[currentRole]} authorized for query`
+          : `${ROLE_LABELS[currentRole]} not authorized`,
+        status: authorized ? "PASS" : "BLOCKED",
+        duration_ms: DEMO_TIMING.rbac,
+      });
+
       if (!authorized) {
         logAuditEntry(currentRole, "lookup_procedure", false, query, "DENIED");
         onAuditUpdate();
         return `ACCESS DENIED: ${ROLE_LABELS[currentRole]} role cannot look up procedures. Required: ${getRequiredRole("lookup_procedure")}.`;
       }
 
+      await simulateDelay(100);
+
+      // Detect petroleum query for multi-retrieval path
+      const isPetroleum = query.toLowerCase().includes("petroleum") && query.toLowerCase().includes("confined");
+
+      // Gate 2a: Retrieval
+      store.addEvent({
+        category: "plant",
+        stage: "retrieval",
+        label: "Retrieval: confined space rescue",
+        detail: "3 documents, top score 0.87",
+        status: "PASS",
+        value: 0.87,
+        duration_ms: DEMO_TIMING.retrieval1,
+      });
+
+      if (isPetroleum) {
+        await simulateDelay(100);
+        store.addEvent({
+          category: "plant",
+          stage: "retrieval",
+          label: "Retrieval: atmospheric hazards petroleum",
+          detail: "2 documents, top score 0.79",
+          status: "PASS",
+          value: 0.79,
+          duration_ms: DEMO_TIMING.retrieval2,
+        });
+      }
+
+      await simulateDelay(100);
+
+      // Gate 2b: ACL filter
+      store.addEvent({
+        category: "sensor",
+        stage: "acl",
+        label: "ACL filter",
+        detail: "5 of 5 documents authorized",
+        status: "PASS",
+        value: 5,
+        duration_ms: DEMO_TIMING.acl,
+      });
+
+      await simulateDelay(100);
+
+      // Gate 3: Evidence threshold
       const result = lookupProcedure(query);
-      if (!result) {
+      const evidenceScore = result ? (isPetroleum ? 0.83 : 0.88) : 0.41;
+      const evidencePassed = evidenceScore >= DEMO_THRESHOLDS.evidence;
+
+      store.addEvent({
+        category: "controller",
+        stage: "evidence",
+        label: "Evidence threshold",
+        detail: `combined score ${evidenceScore.toFixed(2)}, threshold ${DEMO_THRESHOLDS.evidence.toFixed(2)}`,
+        status: evidencePassed ? "PASS" : "FAIL",
+        value: evidenceScore,
+        threshold: DEMO_THRESHOLDS.evidence,
+        duration_ms: DEMO_TIMING.evidence,
+      });
+
+      await simulateDelay(100);
+
+      if (!result || !evidencePassed) {
+        store.addEvent({
+          category: "feedback",
+          stage: "audit",
+          label: "Controller decision: REFUSE",
+          detail: "Evidence below threshold. Fail-closed.",
+          status: "FAIL",
+          duration_ms: DEMO_TIMING.audit,
+        });
         logAuditEntry(currentRole, "lookup_procedure", true, query, "NO_MATCH - FAIL_CLOSED");
         onAuditUpdate();
         return "INSUFFICIENT EVIDENCE: No matching procedure found. The system refuses to generate an answer without supporting evidence.";
       }
 
+      // Gate 4: HHEM - emit PENDING, wait 847ms, resolve to PASS
+      const hhemEventId = store.addEvent({
+        category: "controller",
+        stage: "hhem",
+        label: "HHEM factual consistency",
+        detail: "scoring response against retrieved sources...",
+        status: "PENDING",
+        duration_ms: undefined,
+      });
+
+      await simulateDelay(DEMO_TIMING.hhem);
+
+      store.updateEvent(hhemEventId, {
+        status: "PASS",
+        value: 0.91,
+        detail: "response grounded in sources",
+        duration_ms: DEMO_TIMING.hhem,
+      });
+
+      // Petroleum path: simulated tool proposals
+      if (isPetroleum) {
+        await simulateDelay(100);
+        store.addEvent({
+          category: "sensor",
+          stage: "tool_auth",
+          label: "Tool: check_procedure_currency",
+          detail: "SOP-CS-001 updated 3 days ago",
+          status: "ALERT",
+          duration_ms: 23,
+        });
+
+        await simulateDelay(100);
+        store.addEvent({
+          category: "block",
+          stage: "tool_auth",
+          label: "Tool: queue_notification (severity-1)",
+          detail: "Operator role lacks send permission",
+          status: "BLOCKED",
+          duration_ms: DEMO_TIMING.toolAuth,
+        });
+
+        await simulateDelay(100);
+        store.addEvent({
+          category: "controller",
+          stage: "hitl",
+          label: "Routed to supervisor approval queue",
+          detail: "Awaiting supervisor review",
+          status: "ROUTED",
+          duration_ms: DEMO_TIMING.hitl,
+        });
+      }
+
+      await simulateDelay(100);
+
+      // Feedback: audit
       const results = Array.isArray(result) ? result : [result];
+      store.addEvent({
+        category: "feedback",
+        stage: "audit",
+        label: `Controller decision: SERVE`,
+        detail: `${results.length} procedure(s) retrieved. Audit chained.`,
+        status: "CHAINED",
+        duration_ms: DEMO_TIMING.audit,
+      });
+
       for (const r of results) {
         logAuditEntry(currentRole, "lookup_procedure", true, query, `APPROVED - ${r.document}`);
       }
@@ -183,21 +353,63 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
       },
     ],
     handler: async ({ message, priority }) => {
+      const store = useEventStore.getState();
+      store.clear();
+
       const authorized = isAuthorized(currentRole, "queue_notification");
+
+      store.addEvent({
+        category: "controller",
+        stage: "rbac",
+        label: "RBAC authorization",
+        detail: authorized
+          ? `${ROLE_LABELS[currentRole]} authorized for notifications`
+          : `${ROLE_LABELS[currentRole]} not authorized`,
+        status: authorized ? "PASS" : "BLOCKED",
+        duration_ms: DEMO_TIMING.rbac,
+      });
+
+      await simulateDelay(100);
+
+      store.addEvent({
+        category: "controller",
+        stage: "tool_auth",
+        label: "Tool authorization: queue_notification",
+        detail: authorized
+          ? `${ROLE_LABELS[currentRole]} has send permission`
+          : `${ROLE_LABELS[currentRole]} lacks send permission`,
+        status: authorized ? "PASS" : "BLOCKED",
+        duration_ms: DEMO_TIMING.toolAuth,
+      });
+
       if (!authorized) {
+        await simulateDelay(100);
+        store.addEvent({
+          category: "feedback",
+          stage: "audit",
+          label: "Controller decision: BLOCK",
+          detail: "Insufficient role. Action denied.",
+          status: "BLOCKED",
+          duration_ms: DEMO_TIMING.audit,
+        });
         logAuditEntry(currentRole, "queue_notification", false, message, "DENIED");
         onAuditUpdate();
         return `ACCESS DENIED: Notification dispatch requires ${getRequiredRole("queue_notification")} role or higher. Current role: ${ROLE_LABELS[currentRole]}.`;
       }
 
+      await simulateDelay(100);
+
       const targets = getNotificationTargets();
-      logAuditEntry(
-        currentRole,
-        "queue_notification",
-        true,
-        `${priority}: ${message}`,
-        `SENT to ${targets.length} recipients`
-      );
+      store.addEvent({
+        category: "feedback",
+        stage: "audit",
+        label: "Controller decision: SERVE",
+        detail: `Notification dispatched to ${targets.length} recipients. Audit chained.`,
+        status: "CHAINED",
+        duration_ms: DEMO_TIMING.audit,
+      });
+
+      logAuditEntry(currentRole, "queue_notification", true, `${priority}: ${message}`, `SENT to ${targets.length} recipients`);
       onAuditUpdate();
       return JSON.stringify({ sent: true, priority, targets, message });
     },
@@ -284,21 +496,63 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
       },
     ],
     handler: async ({ procedure, proposed_change }) => {
+      const store = useEventStore.getState();
+      store.clear();
+
       const authorized = isAuthorized(currentRole, "draft_procedure_update");
+
+      store.addEvent({
+        category: "controller",
+        stage: "rbac",
+        label: "RBAC authorization",
+        detail: authorized
+          ? `${ROLE_LABELS[currentRole]} authorized for procedure updates`
+          : `${ROLE_LABELS[currentRole]} not authorized`,
+        status: authorized ? "PASS" : "BLOCKED",
+        duration_ms: DEMO_TIMING.rbac,
+      });
+
+      await simulateDelay(100);
+
+      store.addEvent({
+        category: "controller",
+        stage: "tool_auth",
+        label: "Tool authorization: draft_procedure_update",
+        detail: authorized
+          ? `${ROLE_LABELS[currentRole]} has update permission`
+          : `Admin role required`,
+        status: authorized ? "PASS" : "BLOCKED",
+        duration_ms: DEMO_TIMING.toolAuth,
+      });
+
       if (!authorized) {
+        await simulateDelay(100);
+        store.addEvent({
+          category: "feedback",
+          stage: "audit",
+          label: "Controller decision: BLOCK",
+          detail: "Insufficient role. Draft denied.",
+          status: "BLOCKED",
+          duration_ms: DEMO_TIMING.audit,
+        });
         logAuditEntry(currentRole, "draft_procedure_update", false, procedure, "DENIED");
         onAuditUpdate();
         return `ACCESS DENIED: Procedure updates require ${getRequiredRole("draft_procedure_update")} role. Current role: ${ROLE_LABELS[currentRole]}.`;
       }
 
+      await simulateDelay(100);
+
       const draft = generateProcedureUpdate(procedure, proposed_change);
-      logAuditEntry(
-        currentRole,
-        "draft_procedure_update",
-        true,
-        `${procedure}: ${proposed_change}`,
-        `DRAFT CREATED: ${draft.draftId}`
-      );
+      store.addEvent({
+        category: "feedback",
+        stage: "audit",
+        label: "Controller decision: SERVE",
+        detail: `Draft ${draft.draftId} created. Custodian review required. Audit chained.`,
+        status: "CHAINED",
+        duration_ms: DEMO_TIMING.audit,
+      });
+
+      logAuditEntry(currentRole, "draft_procedure_update", true, `${procedure}: ${proposed_change}`, `DRAFT CREATED: ${draft.draftId}`);
       onAuditUpdate();
       return JSON.stringify(draft);
     },
