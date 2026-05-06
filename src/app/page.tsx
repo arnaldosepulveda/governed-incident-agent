@@ -25,20 +25,17 @@ export default function Home() {
       <div className="h-screen flex flex-col bg-gray-50">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 py-2 shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-base font-bold text-gray-900">
-                KEYSTONE AI — GOVERNED INCIDENT RESPONSE DEMO
-              </h1>
-            </div>
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-base font-bold text-gray-900 shrink-0">
+              KEYSTONE AI — GOVERNED INCIDENT RESPONSE
+            </h1>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Active Role:</span>
               <RoleSwitcher
                 currentRole={currentRole}
                 onRoleChange={setCurrentRole}
               />
-              <div className="text-xs text-gray-400">
-                AI Tinkerers Hackathon | May 2026
-              </div>
+              <span className="text-xs text-gray-400 shrink-0">AI Tinkerers | May 2026</span>
             </div>
           </div>
         </header>
@@ -86,7 +83,6 @@ The current user role is provided in context. Every action is logged to an immut
           </div>
         </div>
 
-        {/* Bottom: Demo Script only, Audit collapsed */}
         <div className="shrink-0 border-t border-gray-200 bg-white">
           <div className="flex flex-col md:flex-row">
             <div className="flex-1 p-3 border-r border-gray-200">
@@ -100,21 +96,25 @@ The current user role is provided in context. Every action is logged to an immut
               </details>
             </div>
             <div className="w-full md:w-80 p-3">
-              <h2 className="font-semibold text-gray-900 text-xs mb-2">Demo Script</h2>
-              <div className="space-y-1.5 text-xs text-gray-600">
-                <div className="flex gap-2">
-                  <span className="font-mono bg-green-50 text-green-700 px-1.5 rounded">1</span>
-                  <span>&quot;What atmospheric testing is required before entering a confined space?&quot;</span>
+              <details className="text-xs">
+                <summary className="font-semibold text-gray-900 text-xs cursor-pointer select-none">
+                  Demo Script (click to expand)
+                </summary>
+                <div className="space-y-1.5 text-xs text-gray-600 mt-2">
+                  <div className="flex gap-2">
+                    <span className="font-mono bg-green-50 text-green-700 px-1.5 rounded">1</span>
+                    <span>&quot;What atmospheric testing is required before entering a confined space?&quot;</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="font-mono bg-blue-50 text-blue-700 px-1.5 rounded">2</span>
+                    <span>&quot;Worker collapsed in a confined space at a petroleum facility&quot;</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="font-mono bg-amber-50 text-amber-700 px-1.5 rounded">3</span>
+                    <span>&quot;What are the TIER reporting requirements for greenhouse gas emissions?&quot;</span>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <span className="font-mono bg-blue-50 text-blue-700 px-1.5 rounded">2</span>
-                  <span>&quot;Worker collapsed in a confined space at a petroleum facility&quot;</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="font-mono bg-amber-50 text-amber-700 px-1.5 rounded">3</span>
-                  <span>&quot;What are the TIER reporting requirements for greenhouse gas emissions?&quot;</span>
-                </div>
-              </div>
+              </details>
             </div>
           </div>
         </div>
