@@ -111,7 +111,7 @@ export function lookupProcedure(query: string): ProcedureResult | ProcedureResul
   if (q.includes("collapse") || q.includes("confined space emergency") || q.includes("rescue")) {
     return PROCEDURES["confined_space_collapse"];
   }
-  if (q.includes("atmospheric") || q.includes("testing") || q.includes("air quality") || q.includes("gas")) {
+  if (q.includes("atmospheric") || q.includes("air quality") || (q.includes("gas") && !q.includes("greenhouse") && !q.includes("emission") && !q.includes("tier"))) {
     return PROCEDURES["atmospheric_testing"];
   }
   if (q.includes("mayday") || q.includes("lost") || q.includes("trapped")) {
