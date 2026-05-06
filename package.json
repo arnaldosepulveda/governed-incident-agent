@@ -28,7 +28,8 @@
     "openai": "^6.36.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.0",
