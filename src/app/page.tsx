@@ -86,11 +86,18 @@ The current user role is provided in context. Every action is logged to an immut
           </div>
         </div>
 
-        {/* Bottom: Audit + Demo Script */}
+        {/* Bottom: Demo Script only, Audit collapsed */}
         <div className="shrink-0 border-t border-gray-200 bg-white">
           <div className="flex flex-col md:flex-row">
             <div className="flex-1 p-3 border-r border-gray-200">
-              <AuditPanel refreshKey={auditRefresh} />
+              <details className="text-xs">
+                <summary className="font-semibold text-gray-900 text-xs cursor-pointer select-none">
+                  Audit Trail (click to expand)
+                </summary>
+                <div className="mt-2">
+                  <AuditPanel refreshKey={auditRefresh} />
+                </div>
+              </details>
             </div>
             <div className="w-full md:w-80 p-3">
               <h2 className="font-semibold text-gray-900 text-xs mb-2">Demo Script</h2>
