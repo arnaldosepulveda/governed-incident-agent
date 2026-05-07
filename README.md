@@ -1,7 +1,5 @@
 # Governed Incident Response
 
-**AI Tinkerers Hackathon | Boston | May 9, 2026**
-
 An agentic interface for incident response where every action the agent
 takes is authorized by the user's role and logged to a tamper-evident
 audit trail. The agent generates different UI depending on what the user
