@@ -7,10 +7,15 @@ import { GovernedActions } from "@/components/GovernedActions";
 import { AuditPanel } from "@/components/AuditPanel";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { ControlFeedback } from "@/components/ControlFeedback";
+import { ReplayControls } from "@/components/ReplayControls";
+import { ReplayCardPanel } from "@/components/ReplayCardPanel";
+import { useEventStore } from "@/lib/eventStore";
 
 export default function Home() {
   const [currentRole, setCurrentRole] = useState<Role>("operator");
   const [auditRefresh, setAuditRefresh] = useState(0);
+  const demoMode = useEventStore((s) => s.demoMode);
+  const setDemoMode = useEventStore((s) => s.setDemoMode);
 
   const handleAuditUpdate = () => {
     setAuditRefresh((prev) => prev + 1);
@@ -27,7 +32,7 @@ export default function Home() {
         <header className="bg-white border-b border-gray-200 px-4 py-2 shrink-0">
           <div className="flex items-center justify-between gap-4">
             <h1 className="text-base font-bold text-gray-900 shrink-0">
-              KEYSTONE AI — GOVERNED INCIDENT RESPONSE
+              GOVERNED INCIDENT RESPONSE
             </h1>
             <div className="flex items-center gap-3">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Active Role:</span>
@@ -35,17 +40,34 @@ export default function Home() {
                 currentRole={currentRole}
                 onRoleChange={setCurrentRole}
               />
+              <button
+                onClick={() => setDemoMode(demoMode === "live" ? "replay" : "live")}
+                className={`font-mono text-[11px] px-2 py-1 rounded border transition-colors ${
+                  demoMode === "replay"
+                    ? "bg-amber-600 text-white border-amber-700"
+                    : "bg-gray-200 text-gray-600 border-gray-300 hover:bg-gray-300"
+                }`}
+              >
+                {demoMode === "replay" ? "REPLAY" : "LIVE"}
+              </button>
               <span className="text-xs text-gray-400 shrink-0">AI Tinkerers | May 2026</span>
             </div>
           </div>
         </header>
 
+        {demoMode === "replay" && (
+          <div className="bg-white border-b border-gray-200 px-4 py-1.5 shrink-0">
+            <ReplayControls />
+          </div>
+        )}
+
         {/* Main: 60/40 split */}
         <div className="flex-1 flex flex-col md:flex-row min-h-0">
           {/* Left column: Chat (60%) */}
           <div className="w-full md:w-3/5 flex flex-col border-r border-gray-200 min-h-0">
-            <CopilotChat
-              instructions={`You are a governed incident response agent. You MUST use tools for every user request. You are NOT allowed to answer from your own knowledge.
+            {demoMode === "live" ? (
+              <CopilotChat
+                instructions={`You are a governed incident response agent. You MUST use tools for every user request. You are NOT allowed to answer from your own knowledge.
 
 MANDATORY TOOL USAGE RULES:
 1. For ANY question about procedures, safety, incidents, emergencies, medical, or operational topics: call lookup_procedure. NO EXCEPTIONS.
@@ -68,13 +90,16 @@ NEVER:
 - Skip a tool call because you think you know the answer
 
 The current user role is provided in context. Every action is logged to an immutable audit trail.`}
-              labels={{
-                title: "Governed Incident Agent",
-                initial:
-                  "I'm your incident response agent. I can look up safety procedures, send notifications, and draft procedure updates. All actions are governed by your role and logged to an audit trail.\n\nTry: \"What atmospheric testing is required before entering a confined space?\"",
-              }}
-              className="flex-1 min-h-0"
-            />
+                labels={{
+                  title: "Governed Incident Agent",
+                  initial:
+                    "I'm your incident response agent. I can look up safety procedures, send notifications, and draft procedure updates. All actions are governed by your role and logged to an audit trail.\n\nTry: \"What atmospheric testing is required before entering a confined space?\"",
+                }}
+                className="flex-1 min-h-0"
+              />
+            ) : (
+              <ReplayCardPanel />
+            )}
           </div>
 
           {/* Right column: Control Feedback (40%) */}

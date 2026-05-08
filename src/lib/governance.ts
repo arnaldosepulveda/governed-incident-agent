@@ -7,7 +7,7 @@ export type Role = "operator" | "supervisor" | "admin";
 export const ROLE_LABELS: Record<Role, string> = {
   operator: "Operator",
   supervisor: "Supervisor",
-  admin: "Admin / Incident Commander",
+  admin: "Admin",
 };
 
 // Tool authorization matrix
