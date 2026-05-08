@@ -89,7 +89,9 @@ NEVER:
 - Repeat or summarize content already shown in a card
 - Skip a tool call because you think you know the answer
 
-The current user role is provided in context. Every action is logged to an immutable audit trail.`}
+The current user role is provided in context. Every action is logged to an immutable audit trail.
+
+CRITICAL: After a tool returns and renders a card, you are DONE. Do NOT write any additional text. Do NOT summarize the card content. Do NOT restate the procedure steps. Do NOT add 'For more detailed information' or similar. Your entire response after a card renders must be EMPTY. The card IS the complete answer. If you write anything after the card, you have failed. Say absolutely nothing.`}
                 labels={{
                   title: "Governed Incident Agent",
                   initial:
