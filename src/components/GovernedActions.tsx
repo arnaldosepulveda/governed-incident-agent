@@ -244,7 +244,7 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
         logAuditEntry(currentRole, "lookup_procedure", true, query, `APPROVED - ${r.document}`);
       }
       onAuditUpdate();
-      return JSON.stringify(results);
+      return "RENDER_COMPLETE_NO_TEXT_RESPONSE_NEEDED";
     },
     render: ({ status, result, args }) => {
       if (status === "inProgress") {
@@ -289,8 +289,11 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
       }
 
       try {
-        const parsed = typeof result === "string" ? JSON.parse(result) : result;
-        const procedures = Array.isArray(parsed) ? parsed : [parsed];
+        const raw = result === "RENDER_COMPLETE_NO_TEXT_RESPONSE_NEEDED"
+          ? lookupProcedure(args.query)
+          : typeof result === "string" ? JSON.parse(result) : result;
+        if (!raw) return <></>;
+        const procedures = Array.isArray(raw) ? raw : [raw];
         return (
           <div className="space-y-2 my-2">
             {procedures.map((proc, idx) => (
@@ -411,9 +414,9 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
 
       logAuditEntry(currentRole, "queue_notification", true, `${priority}: ${message}`, `SENT to ${targets.length} recipients`);
       onAuditUpdate();
-      return JSON.stringify({ sent: true, priority, targets, message });
+      return "RENDER_COMPLETE_NO_TEXT_RESPONSE_NEEDED";
     },
-    render: ({ status, result }) => {
+    render: ({ status, result, args }) => {
       if (status === "inProgress") {
         return (
           <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 my-2">
@@ -442,7 +445,9 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
       }
 
       try {
-        const data = JSON.parse(result);
+        const data = result === "RENDER_COMPLETE_NO_TEXT_RESPONSE_NEEDED"
+          ? { priority: args.priority, message: args.message, targets: getNotificationTargets() }
+          : JSON.parse(result);
         return (
           <div className="border border-blue-300 bg-white rounded-lg p-4 my-2 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
@@ -554,9 +559,9 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
 
       logAuditEntry(currentRole, "draft_procedure_update", true, `${procedure}: ${proposed_change}`, `DRAFT CREATED: ${draft.draftId}`);
       onAuditUpdate();
-      return JSON.stringify(draft);
+      return "RENDER_COMPLETE_NO_TEXT_RESPONSE_NEEDED";
     },
-    render: ({ status, result }) => {
+    render: ({ status, result, args }) => {
       if (status === "inProgress") {
         return (
           <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 my-2">
@@ -585,7 +590,9 @@ export function GovernedActions({ currentRole, onAuditUpdate }: GovernedActionsP
       }
 
       try {
-        const data = JSON.parse(result);
+        const data = result === "RENDER_COMPLETE_NO_TEXT_RESPONSE_NEEDED"
+          ? generateProcedureUpdate(args.procedure, args.proposed_change)
+          : JSON.parse(result);
         return (
           <div className="border border-purple-300 bg-white rounded-lg p-4 my-2 shadow-sm">
             <div className="flex items-center gap-2 mb-3">

@@ -130,15 +130,15 @@ CRITICAL: After a tool returns and renders a card, you are DONE. Do NOT write an
                 <div className="space-y-1.5 text-xs text-gray-600 mt-2">
                   <div className="flex gap-2">
                     <span className="font-mono bg-green-50 text-green-700 px-1.5 rounded">1</span>
-                    <span>&quot;What atmospheric testing is required before entering a confined space?&quot;</span>
+                    <span>What atmospheric testing is required before entering a confined space?</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="font-mono bg-blue-50 text-blue-700 px-1.5 rounded">2</span>
-                    <span>&quot;Worker collapsed in a confined space at a petroleum facility&quot;</span>
+                    <span>Worker collapsed in a confined space at a petroleum facility</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="font-mono bg-amber-50 text-amber-700 px-1.5 rounded">3</span>
-                    <span>&quot;What are the TIER reporting requirements for greenhouse gas emissions?&quot;</span>
+                    <span>What are the TIER reporting requirements for greenhouse gas emissions?</span>
                   </div>
                 </div>
               </details>
