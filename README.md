@@ -93,7 +93,7 @@ Next.js 14, React 18, TypeScript, Tailwind CSS, CopilotKit, OpenAI GPT-4o
 ## About
 
 Built by Arnaldo Sepulveda.
-Based on the governance architecture from Keystone AI, a governed RAG
+Based on the governance architecture from Keystone Applied Intelligence, a governed RAG
 system for regulated industries.
 
 - Demo: demo.getkeystone.ai
